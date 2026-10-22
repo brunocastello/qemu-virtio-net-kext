@@ -49,11 +49,11 @@ The full story is in [this gist](https://gist.github.com/brunocastello/d3605c048
 sudo ./collect-logs.sh
 ```
 
-This writes a report to the Desktop. If the network is up but traffic is broken, set `PJVirtioNetAllowOffloading` to `false` in `/System/Library/Extensions/virtio-net.kext/Contents/Info.plist` and reboot. To get back online quickly, switch UTM to e1000 and run `sudo ./uninstall.sh`.
+This writes a report to the Desktop. To get back online quickly, switch UTM to e1000 and run `sudo ./uninstall.sh`.
 
 ## Limitations
 
-- TCP segmentation offload isn't active yet. Checksum offload is.
+- No checksum or TCP segmentation offload on UTM. QEMU only offers them with Linux `tap` networking, and UTM uses slirp or vmnet. The driver supports them and turns them on wherever QEMU offers them.
 - No promiscuous mode, so packet sniffers only see this VM's own traffic.
 - No VLAN filtering.
 
