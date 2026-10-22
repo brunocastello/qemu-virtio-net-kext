@@ -21,6 +21,8 @@ Sister project with the same build approach, already proven green in CI and work
   `kxld[eu.philjordan.virtio-net]: The super class vtable 'vtable for IOEthernetController' for vtable 'vtable for eu_philjordan_virtio_net' is out of date.` → link error code 5.
 - Guest 10.6.8 runs **IONetworkingFamily 1.10** = Apple OSS tag `IONetworkingFamily-65.2.1` (verified by reading that tag's Info.plist).
 - The user removed the broken kext and is on e1000 meanwhile.
+- **2026-10-22, 0.9.5 (CI run 39831855288) in the 10.6.8 guest:** kextutil OK, loads, `en0` up, DHCP 10.0.3.15 on UTM "Emulated VLAN" (QEMU user-mode net: gw 10.0.3.2, DNS 10.0.3.3). Ping gw OK, TCP by IP OK (`curl http://1.1.1.1` → 301), `dig @10.0.3.3` OK. System DNS failed until `killall mDNSResponder`, then `curl captive.apple.com` → 200. So the driver works (offloading on); the remaining failure is the same mDNSResponder boot stall seen with e1000. `ping 1.1.1.1` fails, which is expected because user-mode net doesn't forward ICMP to the internet.
+- Known cosmetic issues: `netstat -I en0` packet counters stay 0 (bytes count), `IOFeatures = 0` (TSO not advertised: `getFeatures()` is probably called before features are negotiated). The VIOLog feature lines don't show in kernel.log.
 
 ## What this repo is
 
