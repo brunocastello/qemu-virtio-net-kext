@@ -72,7 +72,7 @@ Order of checks if it fails:
 1. `kextutil -n -t` output (load/link errors).
 2. Loaded but no `en*` interface → driver start failed; kernel log.
 3. Interface up, no traffic → set `PJVirtioNetAllowOffloading` false; also try `PJVirtioMaxTransmitDataSegments`.
-4. Performance: compare a large download vs e1000 (`curl -o /dev/null -w '%{speed_download}'`).
+4. Performance: not measured. The user decided against a speed test (2026-10-22). Project considered done for 10.6.8.
 
 ## Related problem: no DNS at boot (SOLVED 2026-10-22, not the kext)
 
