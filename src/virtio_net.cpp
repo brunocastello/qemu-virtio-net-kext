@@ -1034,7 +1034,7 @@ bool eu_philjordan_virtio_net::configureInterface(IONetworkInterface *netif)
 	 * netstat -I showed 0 packets (bytes are counted by the stack). */
 	IONetworkData* stats_data = netif->getParameter(kIONetworkStatsKey);
 	if (stats_data)
-		net_stats = static_cast<IONetworkStats*>(stats_data->getBuffer());
+		net_stats = static_cast<IONetworkStats*>(const_cast<void*>(stats_data->getBuffer()));
 	return true;
 }
 
