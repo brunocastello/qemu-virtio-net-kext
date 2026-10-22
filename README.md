@@ -73,6 +73,21 @@ This writes a report to the Desktop with load errors, kernel log, interfaces, ro
 - **Link up but traffic broken:** set `PJVirtioNetAllowOffloading` to `false` in `/System/Library/Extensions/virtio-net.kext/Contents/Info.plist`, then reboot.
 - **Need network now:** switch UTM back to e1000 and run `sudo ./uninstall.sh`.
 
+### 10.6: connected, has an IP, but no DNS until mDNSResponder is restarted
+
+This isn't the driver. It happens with e1000 too. Under QEMU, 10.6's configd crashes at every boot: its
+PowerManagement plugin reads past the end of an array while decoding a bogus "prior boot failure" code,
+which AppleRTC reads from CMOS bytes QEMU doesn't implement (`Sleep failure code 0xffffffff 0xffffffff`
+in `kernel.log`). mDNSResponder then never sees the network. The clock doesn't sync either, because ntpd can't resolve its server.
+
+Fix (10.6.8 only; checks the binary's hash, keeps a backup):
+
+```sh
+sudo ./fix-configd-pmtrace.sh   # then reboot
+```
+
+Full write-up: https://gist.github.com/brunocastello/d3605c048af8f57e691130dfe0ddfac5
+
 ## Limitations (from the original driver)
 
 - No large-receive reassembly.

@@ -129,7 +129,7 @@ DIST       := $(BUILD)/dist/$(ZIP_NAME)-$(VERSION)
 zip: kext
 	rm -rf $(BUILD)/dist && mkdir -p $(DIST)
 	cp -R $(KEXT) $(DIST)/
-	cp guest/install.sh guest/remove-old.sh guest/uninstall.sh guest/collect-logs.sh $(DIST)/
+	cp guest/install.sh guest/remove-old.sh guest/uninstall.sh guest/collect-logs.sh guest/fix-configd-pmtrace.sh $(DIST)/
 	cp LICENSE $(DIST)/LICENSE.txt
 	chmod +x $(DIST)/*.sh
 	cd $(BUILD)/dist && rm -f ../$(ZIP_NAME)-$(VERSION).zip && \

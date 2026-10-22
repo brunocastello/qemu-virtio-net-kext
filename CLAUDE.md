@@ -72,6 +72,17 @@ Order of checks if it fails:
 3. Interface up, no traffic → set `PJVirtioNetAllowOffloading` false; also try `PJVirtioMaxTransmitDataSegments`.
 4. Performance: compare a large download vs e1000 (`curl -o /dev/null -w '%{speed_download}'`).
 
-## Related open problem (separate, not this kext)
+## Related problem: no DNS at boot (SOLVED 2026-10-22, not the kext)
 
-With e1000, at boot the network sometimes doesn't "kick in" until mDNSResponder is restarted, and the clock doesn't sync until the Date & Time pane is opened. The user has a one-line restart script meant for a login hook and doesn't like that approach. Plan: a LaunchDaemon that waits for a real route/DNS, restarts mDNSResponder, `ntpdate -u`, and restarts ntpd, also on network changes. Note: the guest clock *rate* issue was already fixed in the HDA project (OpenCore manual FSB 250.05 MHz, see that repo's CLAUDE.md); this is about absolute time sync. Retest after virtio-net works.
+With any NIC, 10.6.8 under QEMU booted with an IP but no DNS until `killall mDNSResponder`, and the clock didn't sync.
+Root cause: QEMU's RTC lacks the upper CMOS bank, so AppleRTC's PM trace reads 0xFF and the kernel logs
+`Sleep failure code 0xffffffff 0xffffffff`. configd's PowerManagement.bundle 160.0.0 then indexes the `PCITopLevel`
+array with all 32 bits of the PCI mask, unchecked (x86_64 loop at 0x24e5), and segfaults twice per boot. mDNSResponder stays
+subscribed to the dead configd (state dump: only lo0, no DNS servers). Fix: `guest/fix-configd-pmtrace.sh` patches
+`je 0x258d` at vmaddr 0x2475 (file offset 13429) to `jmp; nop`. The script checks the SHA-256 and keeps a backup. The user confirmed it fixed in the guest.
+Public write-up: https://gist.github.com/brunocastello/d3605c048af8f57e691130dfe0ddfac5. RTCMemoryFixup is not an
+option on 10.6 (requires 10.8 KPIs). The planned mDNSResponder-restart LaunchDaemon is no longer needed.
+
+Guest file transfer without clipboard: on UTM Emulated VLAN the host's localhost is `10.0.3.2` from the guest, so serve
+scripts with `python3 -m http.server --bind 127.0.0.1` and have the guest run `curl -s 10.0.3.2:PORT/x.sh | sh`. Send
+results back with `| nc 10.0.3.2 PORT` to a receiver that reads until EOF. (macOS `nc -l` with stdin at EOF truncates.)
