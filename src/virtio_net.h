@@ -278,7 +278,10 @@ protected:
 	bool should_disable_io;
 	
 	IOEthernetInterface* interface;
-	
+	/// qemu-virtio-net-kext: the interface's packet counters (netstat -I, Activity Monitor).
+	/* Owned by the interface; NULL until configureInterface(). */
+	IONetworkStats* net_stats;
+
 	virtio_net_virtqueue rx_queue;
 	virtio_net_virtqueue tx_queue;
 	

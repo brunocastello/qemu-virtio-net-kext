@@ -41,8 +41,11 @@ STAMP="$DEPS/ionet-overlay/.tag"
 if [ ! -f "$STAMP" ] || [ "$(cat "$STAMP")" != "$IONF_TAG" ]; then
     echo ">> fetching $IONF_TAG headers"
     TMP="$(mktemp -d)"
-    git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$IONF_TAG" \
-        "$IONF_REPO" "$TMP/IONetworkingFamily"
+    # Tarball rather than `git clone --branch`: Apple's old OSS tags point at
+    # tag objects git warns about ("... is not a commit!").
+    mkdir -p "$TMP/IONetworkingFamily"
+    curl -fsSL "${IONF_REPO%.git}/archive/refs/tags/$IONF_TAG.tar.gz" \
+        | tar xzf - -C "$TMP/IONetworkingFamily" --strip-components 1
     rm -rf "$DEPS/ionet-overlay"
     mkdir -p "$OVERLAY"
     cp "$TMP"/IONetworkingFamily/*.h "$OVERLAY/"

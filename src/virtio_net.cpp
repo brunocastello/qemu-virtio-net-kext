@@ -1030,6 +1030,11 @@ bool eu_philjordan_virtio_net::configureInterface(IONetworkInterface *netif)
 		VIOLog("virtio-net configureInterface(): super failed\n");
 		return false;
 	}
+	/* qemu-virtio-net-kext: the original driver never counted packets, so
+	 * netstat -I showed 0 packets (bytes are counted by the stack). */
+	IONetworkData* stats_data = netif->getParameter(kIONetworkStatsKey);
+	if (stats_data)
+		net_stats = static_cast<IONetworkStats*>(stats_data->getBuffer());
 	return true;
 }
 
@@ -1493,9 +1498,13 @@ UInt32 eu_philjordan_virtio_net::outputPacket(mbuf_t buffer, void *param)
 		}
 		kprintf("virtio-net outputPacket(): failed to add packet (length: %lu, return value %X) to queue, dropping it.\n", mbuf_len(buffer), add_ret);
 		freePacket(buffer);
+		if (net_stats)
+			++net_stats->outputErrors;
 		return kIOReturnOutputDropped;
 	}
 	notifyQueueAvailIdx(tx_queue, avail_idx);
+	if (net_stats)
+		++net_stats->outputPackets;
 	return kIOReturnOutputSuccess;
 }
 	
@@ -2325,9 +2334,13 @@ void eu_philjordan_virtio_net::handleReceivedPackets()
 			{
 				interface->inputPacket(packet->mbuf, len, IONetworkInterface::kInputOptionQueuePacket);
 				++packets_submitted;
+				if (net_stats)
+					++net_stats->inputPackets;
 			}
 			else
 			{
+				if (net_stats)
+					++net_stats->inputErrors;
 				kprintf("virtio-net handleReceivedPackets(): warning, no interface (%p), no mbuf (%p) or bad packet length (%u) reported by device. Ignoring packet.\n",
 					interface, packet->mbuf, len);
 				kprintf("virtio-net handleReceivedPackets(): used ring entry: id=%u (0x%x), len=%u\n", used.id, used.id, used.len);
@@ -2416,6 +2429,7 @@ void eu_philjordan_virtio_net::stop(IOService* provider)
 	if (provider != this->pci_dev)
 		VIOLog("Warning: stopping virtio-net with a different provider!?\n");
 
+	net_stats = NULL;
 	if (interface)
 	{
 		detachInterface(interface, true);

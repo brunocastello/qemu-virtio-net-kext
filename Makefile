@@ -59,7 +59,10 @@ WARNINGS   := -Wall -Wno-unused-parameter -Wno-deprecated-declarations \
               -Wno-inconsistent-missing-override -Wno-overloaded-virtual \
               -Wno-unused-private-field -Wno-unknown-warning-option \
               -Wno-gnu-variable-sized-type-not-at-end -Wno-vla-cxx-extension \
-              -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-function
+              -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-function \
+              -Wno-shadow -Wno-implicit-int-conversion -Wno-sign-conversion
+# The last line: the 2013 driver narrows ring indexes to uint16_t on purpose and
+# shadows members in a few helpers; keeping its source untouched beats 30 casts.
 
 CFLAGS     := $(TARGET) $(KFLAGS) $(DEFINES) $(INCLUDES) $(WARNINGS) -std=gnu11
 CXXFLAGS   := $(TARGET) $(KFLAGS) $(DEFINES) $(INCLUDES) $(WARNINGS) \

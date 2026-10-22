@@ -22,7 +22,7 @@ Sister project with the same build approach, already proven green in CI and work
 - Guest 10.6.8 runs **IONetworkingFamily 1.10** = Apple OSS tag `IONetworkingFamily-65.2.1` (verified by reading that tag's Info.plist).
 - The user removed the broken kext and is on e1000 meanwhile.
 - **2026-10-22, 0.9.5 (CI run 39831855288) in the 10.6.8 guest:** kextutil OK, loads, `en0` up, DHCP 10.0.3.15 on UTM "Emulated VLAN" (QEMU user-mode net: gw 10.0.3.2, DNS 10.0.3.3). Ping gw OK, TCP by IP OK (`curl http://1.1.1.1` → 301), `dig @10.0.3.3` OK. System DNS failed until `killall mDNSResponder`, then `curl captive.apple.com` → 200. So the driver works (offloading on); the remaining failure is the same mDNSResponder boot stall seen with e1000. `ping 1.1.1.1` fails, which is expected because user-mode net doesn't forward ICMP to the internet.
-- Known cosmetic issues: `netstat -I en0` packet counters stay 0 (bytes count), `IOFeatures = 0` (TSO not advertised: `getFeatures()` is probably called before features are negotiated). The VIOLog feature lines don't show in kernel.log.
+- Packet counters: the original never filled `IONetworkStats`. Fixed in 0.9.5 (`net_stats`, set in `configureInterface`). TSO: `IOFeatures = 0` (not advertised: `getFeatures()` is probably called before features are negotiated). Deliberately left off until the speed test (deferred by the user). The VIOLog feature lines don't show in kernel.log.
 
 ## What this repo is
 
@@ -50,6 +50,8 @@ Bundle id kept as `eu.philjordan.virtio-net` (version 0.9.5, see `VERSION`) so i
 ### Build notes
 
 - Same flags as qemu-hda-kext: `-target x86_64-apple-macos10.6 -mkernel -fapple-kext -fno-rtti -fno-exceptions -fno-use-cxa-atexit -fno-stack-protector`, `-mllvm -disable-atexit-based-global-dtor-lowering` (when supported), link with `-Xlinker -kext` + MacKernelSDK `libkmod.a`, then `macho-compat.py`. `make check` fails if `__cxa_atexit`/`___dso_handle`/stack-check symbols appear.
+- CI must stay free of warnings and annotations: Node 24 actions (checkout/upload-artifact v7, action-gh-release v3); `-Wno-shadow -Wno-implicit-int-conversion -Wno-sign-conversion` for the untouched 2013 code; IONetworkingFamily is fetched as a tag tarball (git clone of Apple's old tags warns).
+- Releases: push tag `vX.Y.Z` (matching `VERSION`) → the workflow attaches the zip; then set the notes with `gh release edit`.
 - Include order: `deps/ionet-overlay` **before** MacKernelSDK so the 10.6.8 IONetworkingFamily headers win. This is the actual fix for the vtable error.
 - Compile-checked with clang 18 (Linux, `make objects`) before handoff; the Mach-O link has not run yet. Imports compared with the original 10.8 binary: only differences are `IONetworkController::_RESERVEDIONetworkController0/1` (slots that are reserved in 10.6 and were used in 10.8 — exactly the old mismatch), `IOService::message`, and libkmod's `_start/_stop`.
 - If kxld on 10.6 complains about a vtable for another class (e.g. `IOService`, `IOPCIDevice`), add that family's 10.6 headers to the overlay the same way (IOPCIFamily OSS tags exist; 10.6-era ≈ `IOPCIFamily-144`…`151.5`).
